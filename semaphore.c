@@ -19,15 +19,15 @@ typedef struct __counter_t {
 	key_t key;
     int value;
     int semid;
-	union semum arg;
+	union semun arg;
 } counter_t;
 
 unsigned int loop_cnt;
 counter_t counter;
 
 int init(counter_t *c);
-void lock();
-void unlock();
+void lock(counter_t *c);
+void unlock(counter_t *c);
 
 void increment(counter_t *c) {
 	lock(&c);
@@ -41,9 +41,9 @@ void decrement(counter_t *c) {
 }
 
 int get(counter_t *c) {
-	lock();
+	lock(&c);
 	int rc = c->value;
-	unlock();
+	unlock(&c);
     return rc;
 }
 
@@ -64,19 +64,20 @@ int main(int argc, char *argv[])
 {                    
     loop_cnt = atoi(argv[1]);
 
-    int key;
-	int semid;
+    int k;
+	int s;
 
-	key, semid = init(&counter);
+	k, s = init(&counter);
 
-	if (key < 0){
+	if (k < 0){
 		perror(argv[0]);
 		exit(1);
 	}
-	if (semid < 0){
+	if (s < 0){
 		perror(argv[0]);
 		exit(1);
 	}
+	printf("semid=%d\n", s);
 
     pthread_t p1, p2;
     printf("main: begin [counter = %d]\n", get(&counter));
@@ -96,7 +97,6 @@ int init(counter_t *c) {
 	c->arg.val = 1;
 	semctl(c->semid, 0, SETVAL, c->arg);
 
-	printf("semid=%d\n", c->semid);
 	return c->key, c->semid;
 }
 
