@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/ipc.h>
@@ -15,38 +16,34 @@ union semun {
 #define PATH "/home/hyunbeen"
 
 typedef struct __counter_t {
+	key_t key;
     int value;
-    pthread_mutex_t lock;
+    int semid;
 	union semum arg;
 } counter_t;
 
 unsigned int loop_cnt;
 counter_t counter;
 
-void init(counter_t *c);
+int init(counter_t *c);
+void lock();
+void unlock();
 
-//lock
 void increment(counter_t *c) {
-	struct sembuf s;
-	s.sem_num = 0;
-	s.sem_op = -1;
-	s.sem_flg = 0;
-	semop(semid, &s, 1);
-
-	decrement(&counter);
+	lock(&c);
+	c->value++;
+	unlock(&c);
 }
-
-//unlock
 void decrement(counter_t *c) {
-	struct sembuf s;
-	s.sem_num = 0;
-	s.sem_op = 1;
-	s.sem_flg = 0;
-	semop(semid, &s, 1);
+	lock(&c);
+	c->value--;
+	unlock(&c);
 }
 
 int get(counter_t *c) {
-	
+	lock();
+	int rc = c->value;
+	unlock();
     return rc;
 }
 
@@ -67,7 +64,19 @@ int main(int argc, char *argv[])
 {                    
     loop_cnt = atoi(argv[1]);
 
-    init(&counter);
+    int key;
+	int semid;
+
+	key, semid = init(&counter);
+
+	if (key < 0){
+		perror(argv[0]);
+		exit(1);
+	}
+	if (semid < 0){
+		perror(argv[0]);
+		exit(1);
+	}
 
     pthread_t p1, p2;
     printf("main: begin [counter = %d]\n", get(&counter));
@@ -80,16 +89,29 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void init(counter_t *c) {
+int init(counter_t *c) {
 	c->key = ftok(PATH, 'z');
+	c->value = 0;
+	c->semid = semget(c->key, 1, 0600 | IPC_CREAT);
+	c->arg.val = 1;
+	semctl(c->semid, 0, SETVAL, c->arg);
 
-	if (c->key < 0){
-		perror(argv[0]);
-		exit(1);
-	}
-	semid = semget(key, 1, 0600 | IPC_CREAT);
-	if (semid < 0){
-		perror(argv[0]);
-		exit(1);
-	printf("semid = %d\n", semid);
+	printf("semid=%d\n", c->semid);
+	return c->key, c->semid;
+}
+
+void lock(counter_t *c){
+	struct sembuf s;
+	s.sem_num = 0;
+	s.sem_op = -1;
+	s.sem_flg = 0;
+	semop(c->semid, &s, 1);
+}
+
+void unlock(counter_t *c){
+	struct sembuf s;
+	s.sem_num = 0;
+	s.sem_op = 1;
+	s.sem_flg = 0;
+	semop(c->semid, &s, 1);
 }
