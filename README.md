@@ -10,7 +10,7 @@
 <img width="100%" src="https://user-images.githubusercontent.com/54614865/121772180-d0a2a480-cbae-11eb-8800-30536ab4bb4e.png"/>
  
 ### 🚀 Performance measurement result(time command)
-<img width="50%" src="https://user-images.githubusercontent.com/54614865/121800804-da8bdc80-cc6e-11eb-9b83-fcd65987bce0.png"/>
+<img width="50%" src="https://user-images.githubusercontent.com/54614865/121801204-1cb61d80-cc71-11eb-9d23-5372fe4e92bf.png"/>
 
 ### 🚀 My Analysis
 - Mutex is faster than Semaphore
